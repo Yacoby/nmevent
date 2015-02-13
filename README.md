@@ -1,4 +1,4 @@
-nmevent v0.3.1 - C#-like implementation of the Observer pattern
+nmevent v0.3.2 - C#-like implementation of the Observer pattern
 ===============================================================
 
 This is the `nmevent` Python module, a simple C#-like implementation of the

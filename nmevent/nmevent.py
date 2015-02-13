@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 # vim: expandtab:tabstop=4:shiftwidth=4:softtabstop=4:autoindent
 
-"""nmevent v0.3.1 - C#-like implementation of the Observer pattern
+"""nmevent v0.3.2 - C#-like implementation of the Observer pattern
 
 This is a Python module :mod:`nmevent`, simple C#-like implementation of
 the Observer pattern (http://en.wikipedia.org/wiki/Observer_pattern).
@@ -119,21 +119,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 Changes
 =======
 
-v0.1
-  Initial release.
+v0.3.2
+  Added fairly useful functionality to the :func:`adapt` function: it
+  can now connect to "nested events". See the functions's documentation
+  for more information. It can also disconnect the handlers as well.
 
-v0.1.1
-  No changes in source code. Improved documentation and unit tests.
-
-v0.2
-  Rewritten most of the code. The :class:`Event` class now works as a 
-  descriptor, which eliminated the need for a separate :class:`EventSlot`
-  class and simplified usage. Added :class:`CallbackStore` to abstract
-  the callback storage. 
-
-v0.2.1
-  Rewritten some unit tests and added new ones. Improved documentation
-  a little bit.
+v0.3.1
+  Added docstring tests and fixed all the docstrings so that they
+  would pass. As a result, another problem was found with the event
+  binding. That problem was fixed by adding the :meth:`InstanceEvent.bind`
+  method to be used mainly by the :class:`Property` class when raising
+  the "changed" events.
 
 v0.3
   Fixed a major bug, which caused an unbound event not to be actually
@@ -143,12 +139,21 @@ v0.3
   decorates a class with "private" attributes for each property and
   automatic getters and setters where either one of them is missing.
 
-v0.3.1
-  Added docstring tests and fixed all the docstrings so that they
-  would pass. As a result, another problem was found with the event
-  binding. That problem was fixed by adding the :meth:`InstanceEvent.bind`
-  method to be used mainly by the :class:`Property` class when raising
-  the "changed" events.
+v0.2.1
+  Rewritten some unit tests and added new ones. Improved documentation
+  a little bit.
+
+v0.2
+  Rewritten most of the code. The :class:`Event` class now works as a 
+  descriptor, which eliminated the need for a separate :class:`EventSlot`
+  class and simplified usage. Added :class:`CallbackStore` to abstract
+  the callback storage. 
+
+v0.1.1
+  No changes in source code. Improved documentation and unit tests.
+
+v0.1
+  Initial release.
 """
 
 __version__ = __doc__.splitlines()[0].split(' ')[1][1:]
@@ -157,6 +162,7 @@ __all__    = [
     'nmproperty',
     'with_events',
     'with_properties',
+    'adapt',
     'Event',
 ]
 
@@ -874,12 +880,30 @@ def discover_handlers(observer, subject, prefix):
 def adapt(observer, observable, prefix = "on_", disconnect = False):
     """Connects observer's handlers to subject's events by their names.
     
+    :param observer: object containing methods to connect as handler to the events
+    :param observable: object containing the events to connect to
+    :param prefix: prefix the names of handler methods start with
+    :param disconnect: when this is `True`, the function disconnects the handlers rather than connecting them
+    :returns: list of tuples of events and respective handlers
+    
+    Handler methods are recognized by their name. Their name must start with the
+    prefix and the continue with the name of the event.
+    
+    This function can also connect handlers to the events of subject's attributes,
+    even nested ones. To connect a handler to a "nested event", separate the
+    attribute names and the event name by double underscore ("__"). For instance,
+    to handle the "z" event of attribute "y" of attribute "x", name your handler
+    "on_x__y__z" (assuming you use the default prefix "on_").
+    
     >>> class Observer(object):
     ...    def on_x_happened(self, *senders, **keywords):
     ...       print "x happened"
     ... 
     ...    def on_y_happened(self, *senders, **keywords):
     ...       print "y happened"
+    ... 
+    ...    def on_attr__x_happened(self, *senders, **keywords):
+    ...       print "attr.x happened"
     ...
     >>> class Observable(object):
     ...    x_happened = nmevent.Event()
@@ -887,19 +911,25 @@ def adapt(observer, observable, prefix = "on_", disconnect = False):
     ...
     >>> observer = Observer()
     >>> observable = Observable()
-    >>> nmevent.adapt(observer, observable)
+    >>> observable.attr = Observable()
+    >>> nmevent.adapt(observer, observable) #doctest: +ELLIPSIS
+    [...]
     >>> observable.x_happened()
     x happened
     >>> observable.y_happened()
     y happened
+    >>> observable.attr.x_happened()
+    attr.x happened
     
     """
+    handlers = list(discover_handlers(observer, observable, prefix))
     if disconnect:
         def fn(event, handler):
             event -= handler
     else:
         def fn(event, handler):
             event += handler
-    for event, handler in discover_handlers(observer, observable, prefix):
+    for event, handler in handlers:
         fn(event, handler)
+    return handlers
 
