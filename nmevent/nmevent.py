@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 # vim: expandtab:tabstop=4:shiftwidth=4:softtabstop=4:autoindent
 
-"""nmevent v0.3.2 - C#-like implementation of the Observer pattern
+"""nmevent v0.3.3 - C#-like implementation of the Observer pattern
 
 This is a Python module :mod:`nmevent`, simple C#-like implementation of
 the Observer pattern (http://en.wikipedia.org/wiki/Observer_pattern).
@@ -118,6 +118,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 =======
 Changes
 =======
+
+v0.3.3
+  Removed support for Python versions < 2.6
+  Added support for Python 3.3 and 3.4
 
 v0.3.2
   Added fairly useful functionality to the :func:`adapt` function: it
