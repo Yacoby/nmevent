@@ -18,7 +18,7 @@ The most straightfoward way to use :mod:`nmevent` is this:
 >>> class ExampleClass(object):
 ...    def __init__(self):
 ...       self.event = nmevent.Event()
-... 
+...
 ...    def do_something(self):
 ...       self.event(self)
 ...
@@ -83,7 +83,7 @@ function or elsewhere.
 ...    def y(self, value):
 ...       old_value, self._y = self._y, value
 ...       self.y_changed(old_value = old_value)
-... 
+...
 ...    def __init__(self):
 ...       self._x = None
 ...       self._y = None
@@ -144,10 +144,10 @@ v0.2.1
   a little bit.
 
 v0.2
-  Rewritten most of the code. The :class:`Event` class now works as a 
+  Rewritten most of the code. The :class:`Event` class now works as a
   descriptor, which eliminated the need for a separate :class:`EventSlot`
   class and simplified usage. Added :class:`CallbackStore` to abstract
-  the callback storage. 
+  the callback storage.
 
 v0.1.1
   No changes in source code. Improved documentation and unit tests.
@@ -175,46 +175,46 @@ class WeakRefCallback(object):
     @property
     def is_alive(self):
         return bool(self.callback and self.callback())
-    
-	def __init__(self, callback):
-		if hasattr(callback, "im_func"):
-			self.callback = weakref.ref(callback.im_self)
-			self.method = callback.im_func
-		else:
-			self.callback = weakref.ref(callback)
-			self.method = None
-	
-	def __repr__(self):
-		return "<WeakRefCallback(callback=%r, method=%r)>" % (self.callback, self.method)
-	
-	def __call__(self, *args, **keywords):
-		callback = self.callback and self.callback()
-		if not callback:
-			self.callback = None
-			return
-		if not self.method:
-			return callback(*args, **keywords)
-		return self.method.__get__(callback, type(callback))(*args, **keywords)
-    
+
+    def __init__(self, callback):
+        if hasattr(callback, "im_func"):
+            self.callback = weakref.ref(callback.im_self)
+            self.method = callback.im_func
+        else:
+            self.callback = weakref.ref(callback)
+            self.method = None
+
+    def __repr__(self):
+        return "<WeakRefCallback(callback=%r, method=%r)>" % (self.callback, self.method)
+
+    def __call__(self, *args, **keywords):
+        callback = self.callback and self.callback()
+        if not callback:
+            self.callback = None
+            return
+        if not self.method:
+            return callback(*args, **keywords)
+        return self.method.__get__(callback, type(callback))(*args, **keywords)
+
     def __hash__(self):
         return hash((self.callback, self.method))
-    
+
     def __eq__(self, other):
         if not isinstance(other, WeakRefCallback):
             return False
         return hash(self) == hash(other)
- 
+
 class CallbackStore(object):
     """Collection of callbacks."""
-    
+
     def __init__(self):
         """Constructor."""
         self.callbacks = set()
-    
+
     def __iter__(self):
         """Returns the collection's iterator object."""
         return iter(self.callbacks)
-    
+
     def __iadd__(self, callback):
         return self.add(callback)
 
@@ -229,15 +229,15 @@ class CallbackStore(object):
 
     def __call__(self, *args, **keywords):
         return self.call(*args, **keywords)
-    
+
     def add(self, callback):
         """Adds a callback to callection.
-        
+
         :param callback: callable object to be added
         """
         self.callbacks.add(callback)
         return self
-    
+
     def remove(self, callback):
         """Removes a callback from the collection.
 
@@ -245,22 +245,22 @@ class CallbackStore(object):
         """
         self.callbacks.remove(callback)
         return self
-    
+
     def contains(self, callback):
         """Returns ``True`` is ``callback`` is in the collection.
 
         :param callback: callback to check for
         """
         return callback in self.callbacks
-    
+
     def count(self):
         """Returns the number of callbacks in the collection."""
         return len(self.callbacks)
-    
+
     def clear(self):
         """Removes all callbacks from collection."""
         self.callbacks = set()
-    
+
     def call(self, *args, **keywords):
         """Calls all callbacks with the given arguments."""
         for callback in self.callbacks:
@@ -271,10 +271,10 @@ class WeakRefCallbackStore(CallbackStore):
         if isinstance(callback, WeakRefCallback):
             return callback
         return WeakRefCallback(callback)
-    
+
     def __init__(self):
         self.callbacks = {}
-    
+
     def add(self, callback):
         super(WeakRefCallbackStore, self).add(self.normalize(callback))
 
@@ -318,13 +318,13 @@ class Event(object):
         if self.__handlers__ is None:
             self.__handlers__ = CallbackStore()
         return self.__handlers__
-        
+
     def __init__(self):
         self.__handlers__ = None
 
     def __get__(self, obj, objtype = None):
         return self.bind(objtype, obj)
-    
+
     def __set__(self, obj, value):
         # raise AttributeError, "Events are read-only attributes."
         pass
@@ -335,20 +335,20 @@ class Event(object):
     def bind(self, objtype, obj = None):
         """Binds the event to a class and optionally an instance."""
         return InstanceEvent(self, objtype, obj)
-    
+
     def add_handler(self, handler):
         """Adds a handler (observer) to this event.
 
         ``__iadd__`` attribute of this class is just an alias of this
         method, so the last two of the following statements are equivalent:
-        
+
         >>> event.add_handler(handler) # doctest: +SKIP
         >>> event += handler # doctest: +SKIP
         """
         self.handlers.add(handler)
         return self
     __iadd__ = add_handler
-    
+
     def remove_handler(self, handler):
         """Removes a handler from this event.
 
@@ -361,19 +361,19 @@ class Event(object):
 
     def has_handler(self, handler):
         """Returns True if handler is this event's handler.
-        
+
         Returns True if the specified handler is contained
         in the collection of this event's handlers.
         """
         return (handler in self.handlers)
     __contains__ = has_handler
-    
+
     def fire(self, sender, *args, **keywords):
         """Fires this event and calls all of its handlers.
         """
         self.handlers.call(sender, *args, **keywords)
     __call__ = fire
-    
+
     def disconnect(self):
         """Disconnects this event from all handlers.
         """
@@ -384,7 +384,7 @@ class InstanceEvent(object):
 
     In Python, unbound actually means bound to a class.
     Bound means bound to both a class and an instance.
-    Instances of this class cannot be bound to the 
+    Instances of this class cannot be bound to the
     ``None`` object, because it is used to indicate
     that the event is unbound.
 
@@ -397,13 +397,13 @@ class InstanceEvent(object):
     :param sender: sender to bind the event to
 
     .. attribute:: __slots__
-       
+
        This class uses the ``__slots__`` attribute to save
        memory, so don't try to assign new attributes to
        its instances.
 
     .. attribute:: im_event
-       
+
        :class:`Event` instance that is bound.
 
     .. attribute:: im_class
@@ -418,7 +418,7 @@ class InstanceEvent(object):
 
        >>> isinstance(self.im_sender, self.im_class) # doctest: +SKIP
     """
-    
+
     __slots__ = ('im_event', 'im_class', 'im_sender', )
 
     @property
@@ -431,7 +431,7 @@ class InstanceEvent(object):
         """:class:`CallbackStore` object that stores this event's handlers."""
         if not self.is_bound:
             return self.im_event.handlers
-        
+
         sender = self.im_sender
         events = sender.__dict__.setdefault(EVENTS_ATTRIBUTE, {})
         handlers = events.setdefault(id(self.im_event), CallbackStore())
@@ -441,7 +441,7 @@ class InstanceEvent(object):
         self.im_event = event
         self.im_class = clss
         self.im_sender = sender
-    
+
     def __call__(self, *args, **keywords):
         sender = self.im_sender
         if sender is None:
@@ -450,13 +450,13 @@ class InstanceEvent(object):
                     "at least 1 positional argument representing the sender.")
             if type(args[0]) is not self.im_class:
                 raise TypeError, ("This unbound event must be called with "
-                    "%s instance as the first argument." % 
+                    "%s instance as the first argument." %
                         (self.im_class.__name__))
             sender = args[0]
             args = args[1:]
             return self.im_event.bind(self.im_class, sender)(*args, **keywords)
         return self.handlers(sender, *args, **keywords)
-    
+
     def __iadd__(self, handler):
         if self.is_bound:
             self.handlers.add(handler)
@@ -484,16 +484,16 @@ class InstanceEvent(object):
         if self.is_bound:
             return "<bound event>"
         return "<unbound event>"
-    
+
     def bind(self, objtype, obj):
         """Attempts to bind the instance event to an instance.
 
         Note that this method silently fails and returns self
         when the event is already bound. This is by design
-        and is meant to unify the :class:`Event`'s and 
+        and is meant to unify the :class:`Event`'s and
         :class:`InstanceEvent`'s protocol.
         """
-        
+
         if self.is_bound:
             return self
         return InstanceEvent(self.im_event, self.im_class, obj)
@@ -519,14 +519,14 @@ class Property(object):
     ...    @nmevent.nmproperty
     ...    def x(self):
     ...       return self._x
-    ...    
+    ...
     ...    @x.setter
     ...    def x(self, value):
     ...       self._x = value
-    ...    
+    ...
     ...    x_changed = nmevent.Event()
     ...    x.changed = x_changed
-    ...    
+    ...
     ...    def __init__(self):
     ...       self._x = 0
     ...
@@ -539,7 +539,7 @@ class Property(object):
     x changed, old value: 0, new value: 42
 
     .. attribute:: fget
-       
+
        Getter function.
 
        If non-None, this function gets called every time
@@ -548,31 +548,31 @@ class Property(object):
        the property.
 
     .. attribute:: fset
-       
+
        Setter function.
 
        If non-None, this function gets called every time
        the value of the property is set. This function
        is responsible for actually storing the value somehow.
-       
+
        If this attribute is ``None``, the property is considered
        read-only.
 
     .. attribute:: fget
-       
+
        Deleter function.
 
     .. attribute:: changed
-       
+
        Value change notification event.
 
        If non-None, this event will be raised every time
        this property is set to a different value.
 
     .. attribute:: property_changed
-       
+
        Property value change notification event.
-       
+
        If none-None, this event will be raised every time
        this property is set to a different value. Unlike
        the :attr:`~Property.changed` event, however, the
@@ -587,11 +587,11 @@ class Property(object):
        ``INotifyPropertyChanged`` interface (see
        http://msdn.microsoft.com/en-US/library/system.componentmodel.inotifypropertychanged.aspx)
     """
-    
+
     @property
     def name(self):
         """The name of the property.
-        
+
         This should be the name of an object's attribute
         that holds the property. The name is guessed by
         retrieving the name of the getter function if present.
@@ -599,24 +599,24 @@ class Property(object):
         if self.fget is not None:
             return self.fget.__name__
         return None
-    
+
     def __init__(self, fget = None, fset = None, fdel = None,
                  changed = None, property_changed = None):
         """Constructor."""
         self.fget = fget
         self.fset = fset
         self.fdel = fdel
-        
+
         self.changed = changed
         self.property_changed = property_changed
-    
+
     def __get__(self, obj, objtype = None):
         if obj is None:
             return self
         if self.fget is None:
             raise AttributeError, "Unreadable attribute."
         return self.fget(obj)
-    
+
     def __set__(self, obj, value):
         if self.fset is None:
             raise AttributeError, "Can't set attribute."
@@ -627,12 +627,12 @@ class Property(object):
         self.fset(obj, value)
         if old_value != value:
             self.fire_changed(obj.__class__, obj, old_value)
-    
+
     def __delete__(self, obj):
         if self.fdel is None:
             raise AttributeError, "Can't delete attribute."
         self.fdel(obj)
-    
+
     def fire_changed(self, objtype, obj, old_value):
         changed = self.changed and self.changed.bind(objtype, obj)
         if changed:
@@ -640,16 +640,16 @@ class Property(object):
         property_changed = self.property_changed and self.property_changed.bind(objtype, obj)
         if self.property_changed:
             property_changed(old_value = old_value, name = self.name)
-    
+
     def setter(self, function):
         """Sets the setter function and returns self.
-        
+
         This function is meant to be used as a method decorator,
         even though it can be called directly to set the
         setter function of its property.
-        
+
         Usage:
-        
+
         >>> class ExampleClass(object):
         ...    def x(self):
         ...       return self._x
@@ -666,7 +666,7 @@ class Property(object):
         ...    # Also works, but looks ugly.
         ...    x.setter(set_x)
         ...
-        
+
         :param function: the property setter function
         :returns: self
         """
@@ -677,31 +677,31 @@ class Property(object):
         """Method decorator to set the delete function.
 
         Works exatcly like the built-in @property.deleter.
-        
+
         :param function: the property deleter function
         :returns: self
         """
         self.fdel = function
         return self
-    
+
 def nmproperty(function):
     """Eventful property decorator.
-    
+
     Creates new :class:`Property` object using the decorated method
     as the getter function. Setter and deleter functions can be
     set by the :meth:`Property.setter` and :meth:`Property.deleter`
     decorators.
-    
+
     This decorator is called :func:`nmproperty` to avoid name conflict
     with the built-in `property` function and decorator.
-    
+
     Usage:
-    
+
     >>> class ExampleClass(object):
     ...    @nmevent.nmproperty
     ...    def x(self):
     ...       return self._x
-    ...    
+    ...
     ...    @x.setter
     ...    def x(self, value):
     ...       self._x = value
@@ -719,10 +719,10 @@ def nmproperty(function):
     >>> example.x_changed += handler # "handler" will be called when the value of x changes
     >>> example.x = 10 # value of x changed, "handler" gets called
     handler called
-    
+
     The :attr:`Property.changed` events can be automatically created and set
     by the :func:`with_events` decorator when used on the class.
-    
+
     :param function: function to be used as the property getter function
     :returns: new `Property` object
     """
@@ -767,7 +767,7 @@ def with_events(clss):
     >>> example.x = 42
     x changed; 0 -> 42
     property 'x' changed, 0 -> 42
-    
+
     In the example above, the :func:`with_events` decorator automatically
     decorates the class with an ``x_changed`` event and ``property_changed``
     event connects them to the instance of :class:`Property` class created by
@@ -778,7 +778,7 @@ def with_events(clss):
     ``x_changed`` gets called only when ``Example.x`` changes,
     ``property_changed`` gets called when any property changes.
     """
-    
+
     property_changed = Event()
     setattr(clss, "property_changed", property_changed)
 
@@ -795,10 +795,10 @@ def with_events(clss):
 
 def with_properties(clss):
     """Decorates a class with automatic "private" attributes.
-    
+
     :param clss: class object to decorate.
     :returns:    decorated class
-    
+
     For every :class:`Property` instance within the class'
     dictionary, it creates a setter and getter (unless they
     are already set to a non-None value). These setters
@@ -807,9 +807,9 @@ def with_properties(clss):
     underscore. In other words, for a property ``foo``,
     you get an attribute called ``_foo`` where the actual
     value is stored.
-    
+
     Usage:
-    
+
     >>> @nmevent.with_properties
     ... class Example(object):
     ...     foo = nmevent.Property()
@@ -818,21 +818,21 @@ def with_properties(clss):
     ...
     >>> def on_foo_changed(sender, old_value):
     ...     print "foo changed"
-    ... 
+    ...
     >>> x = Example()
     >>> x.foo_changed += on_foo_changed
     >>> x.foo = 42 # on_foo_changed gets called
     foo changed
-    
+
     Used together with ``with_events``:
-    
+
     >>> @nmevent.with_events
     ... @nmevent.with_properties
     ... class NextExample(object):
     ...     bar = nmevent.Property()
     ...
     """
-    
+
     def make_getter(attr):
         def getter(self):
             if not hasattr(self, attr):
@@ -844,7 +844,7 @@ def with_properties(clss):
         def setter(self, value):
             setattr(self, attr, value)
         return setter
-    
+
     for name, attr in clss.__dict__.items():
         if isinstance(attr, Property):
             private_attr = "_%s" % name
@@ -862,7 +862,7 @@ def decorated(clss):
 
 def discover_handlers(observer, subject, prefix):
     """Discovers event handlers for the subject's events in the observer.
-    
+
     This function is not meant to be used directly. Use the :func:`adapt()`
     function instead.
     """
@@ -879,29 +879,29 @@ def discover_handlers(observer, subject, prefix):
 
 def adapt(observer, observable, prefix = "on_", disconnect = False):
     """Connects observer's handlers to subject's events by their names.
-    
+
     :param observer: object containing methods to connect as handler to the events
     :param observable: object containing the events to connect to
     :param prefix: prefix the names of handler methods start with
     :param disconnect: when this is `True`, the function disconnects the handlers rather than connecting them
     :returns: list of tuples of events and respective handlers
-    
+
     Handler methods are recognized by their name. Their name must start with the
     prefix and the continue with the name of the event.
-    
+
     This function can also connect handlers to the events of subject's attributes,
     even nested ones. To connect a handler to a "nested event", separate the
     attribute names and the event name by double underscore ("__"). For instance,
     to handle the "z" event of attribute "y" of attribute "x", name your handler
     "on_x__y__z" (assuming you use the default prefix "on_").
-    
+
     >>> class Observer(object):
     ...    def on_x_happened(self, *senders, **keywords):
     ...       print "x happened"
-    ... 
+    ...
     ...    def on_y_happened(self, *senders, **keywords):
     ...       print "y happened"
-    ... 
+    ...
     ...    def on_attr__x_happened(self, *senders, **keywords):
     ...       print "attr.x happened"
     ...
@@ -920,7 +920,7 @@ def adapt(observer, observable, prefix = "on_", disconnect = False):
     y happened
     >>> observable.attr.x_happened()
     attr.x happened
-    
+
     """
     handlers = list(discover_handlers(observer, observable, prefix))
     if disconnect:
