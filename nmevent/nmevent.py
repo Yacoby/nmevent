@@ -166,7 +166,10 @@ __all__    = [
     'Event',
 ]
 
-import __builtin__
+try:
+    import __builtin__ as builtins
+except ImportError:
+    import builtins
 import weakref
 
 EVENTS_ATTRIBUTE = '__nmevents__'
@@ -177,9 +180,9 @@ class WeakRefCallback(object):
         return bool(self.callback and self.callback())
 
     def __init__(self, callback):
-        if hasattr(callback, "im_func"):
-            self.callback = weakref.ref(callback.im_self)
-            self.method = callback.im_func
+        if hasattr(callback, "__self__"):
+            self.callback = weakref.ref(callback.__self__)
+            self.method = callback.__func__
         else:
             self.callback = weakref.ref(callback)
             self.method = None
@@ -326,11 +329,11 @@ class Event(object):
         return self.bind(objtype, obj)
 
     def __set__(self, obj, value):
-        # raise AttributeError, "Events are read-only attributes."
+        # raise AttributeError("Events are read-only attributes.")
         pass
 
     def __delete__(self, obj):
-        raise AttributeError, "Events are read-only attributes."
+        raise AttributeError("Events are read-only attributes.")
 
     def bind(self, objtype, obj = None):
         """Binds the event to a class and optionally an instance."""
@@ -446,10 +449,10 @@ class InstanceEvent(object):
         sender = self.im_sender
         if sender is None:
             if len(args) < 1:
-                raise TypeError, ("Unbound event must be called with "
+                raise TypeError("Unbound event must be called with "
                     "at least 1 positional argument representing the sender.")
             if type(args[0]) is not self.im_class:
-                raise TypeError, ("This unbound event must be called with "
+                raise TypeError("This unbound event must be called with "
                     "%s instance as the first argument." %
                         (self.im_class.__name__))
             sender = args[0]
@@ -614,12 +617,12 @@ class Property(object):
         if obj is None:
             return self
         if self.fget is None:
-            raise AttributeError, "Unreadable attribute."
+            raise AttributeError("Unreadable attribute.")
         return self.fget(obj)
 
     def __set__(self, obj, value):
         if self.fset is None:
-            raise AttributeError, "Can't set attribute."
+            raise AttributeError("Can't set attribute.")
         if self.fget is None:
             self.fset(obj, value)
             return
@@ -630,7 +633,7 @@ class Property(object):
 
     def __delete__(self, obj):
         if self.fdel is None:
-            raise AttributeError, "Can't delete attribute."
+            raise AttributeError("Can't delete attribute.")
         self.fdel(obj)
 
     def fire_changed(self, objtype, obj, old_value):
@@ -782,9 +785,9 @@ def with_events(clss):
     property_changed = Event()
     setattr(clss, "property_changed", property_changed)
 
-    for name, attr in clss.__dict__.items():
+    for name, attr in list(clss.__dict__.items()):
         changed_attr = "%s_changed" % name
-        if isinstance(attr, __builtin__.property):
+        if isinstance(attr, builtins.property):
             setattr(clss, changed_attr, Event())
         elif isinstance(attr, Property):
             setattr(clss, changed_attr, Event())
@@ -845,7 +848,7 @@ def with_properties(clss):
             setattr(self, attr, value)
         return setter
 
-    for name, attr in clss.__dict__.items():
+    for name, attr in list(clss.__dict__.items()):
         if isinstance(attr, Property):
             private_attr = "_%s" % name
             if not attr.fget:
